@@ -107,10 +107,10 @@ export default function ConvertDocument() {
 
 				<div className="flex gap-4">
 					<select className="flex-1 bg-slate-800 text-white rounded-lg px-4 py-2 border border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
-						<option value="">Select output format</option>
-						<option value="pdf">PDF</option>
-						<option value="docx">DOCX</option>
-						<option value="txt">TXT</option>
+						<option value="">Select output format (default: docx)</option>
+						<option value="pdf">.pdf</option>
+						<option value="docx">.docx</option>
+						<option value="txt">.txt</option>
 					</select>
 
 					<button

@@ -1,38 +1,32 @@
 {
-  "name": "client",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "@types/adm-zip": "^0.5.7",
-    "@types/jsdom": "^21.1.7",
-    "@types/xml2js": "^0.4.14",
-    "adm-zip": "^0.5.16",
-    "buffer-image-size": "^0.6.4",
-    "docx": "^9.2.0",
-    "docx-templates": "^4.13.0",
-    "docxtemplater": "^3.60.1",
-    "jsdom": "^26.0.0",
-    "mammoth": "^1.9.0",
-    "next": "15.2.0",
-    "pizzip": "^3.1.8",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-dropzone": "^14.3.8",
-    "xml2js": "^0.6.2"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "tailwindcss": "^4",
-    "typescript": "^5"
-  },
-  "packageManager": "pnpm@9.12.3+sha512.cce0f9de9c5a7c95bef944169cc5dfe8741abfb145078c0d508b868056848a87c81e626246cb60967cbd7fd29a6c062ef73ff840d96b3c86c40ac92cf4a813ee"
+	"name": "client",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"dev": "next dev --turbopack",
+		"build": "next build",
+		"start": "next start",
+		"lint": "next lint"
+	},
+	"dependencies": {
+		"adm-zip": "^0.5.16",
+		"jsdom": "^26.0.0",
+		"next": "15.2.0",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"react-dropzone": "^14.3.8",
+		"xml2js": "^0.6.2"
+	},
+	"devDependencies": {
+		"@tailwindcss/postcss": "^4",
+		"@types/node": "^20",
+		"@types/react": "^19",
+		"@types/react-dom": "^19",
+		"@types/adm-zip": "^0.5.7",
+		"@types/jsdom": "^21.1.7",
+		"@types/xml2js": "^0.4.14",
+		"tailwindcss": "^4",
+		"typescript": "^5"
+	},
+	"packageManager": "pnpm@9.12.3+sha512.cce0f9de9c5a7c95bef944169cc5dfe8741abfb145078c0d508b868056848a87c81e626246cb60967cbd7fd29a6c062ef73ff840d96b3c86c40ac92cf4a813ee"
 }

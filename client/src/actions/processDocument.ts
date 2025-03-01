@@ -2,7 +2,6 @@
 
 import { replaceWithUnicodeLookalikes } from "@/utils/unicode";
 import AdmZip from "adm-zip";
-import { Document, Packer, Paragraph, TextRun } from "docx";
 import xml2js, { parseString } from "xml2js";
 
 type TextNode = {
