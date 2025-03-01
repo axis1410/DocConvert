@@ -21,7 +21,7 @@ This Python script converts regular text in a Word document to similar-looking U
 
    - Make sure to check "Add Python to PATH" during installation
 
-2. Install pandoc from [here](https://github.com/jgm/pandoc/releases/tag/3.6.3)
+2. Install pandoc from https://github.com/jgm/pandoc/releases/tag/3.6.3
 3. Install required packages:
 
 ```bash
