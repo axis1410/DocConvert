@@ -37,3 +37,41 @@ pip install python-docx pypandoc
 ```
 python convert.py
 ```
+
+# Setup Next JS App
+
+This next js application can be used to convert the files in a web interface
+
+## Setup
+
+- Install Node JS [here](https://nodejs.org/en/download)
+- Install pnpm by running the following command
+
+```shell
+npm install --global corepack@latest
+corepack enable pnpm
+```
+
+- Open terminal in the client directory
+
+```shell
+cd PATH/TO/client/DIRECTORY
+```
+
+- Run the following command to install dependencies
+
+```shell
+pnpm install
+```
+
+- Build the web app
+
+```shell
+pnpm run build
+```
+
+- Run the app
+
+```shell
+pnpm run start
+```
