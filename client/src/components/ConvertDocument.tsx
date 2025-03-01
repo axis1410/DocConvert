@@ -4,16 +4,22 @@ import { processDocument } from "@/actions/processDocument";
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 
+interface FileStatus {
+	file: File;
+	status: "pending" | "converting" | "completed" | "error";
+	error?: string;
+}
+
 export default function ConvertDocument() {
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-	const [selectedFile, setSelectedFile] = useState<File | null>(null);
+	const [selectedFiles, setSelectedFiles] = useState<FileStatus[]>([]);
+	const [isConverting, setIsConverting] = useState(false);
 
 	const onDrop = useCallback((acceptedFiles: File[]) => {
-		if (acceptedFiles.length > 0) {
-			setSelectedFile(acceptedFiles[0]);
-			setError(null);
-		}
+		const newFiles = acceptedFiles.map((file) => ({
+			file,
+			status: "pending" as const,
+		}));
+		setSelectedFiles((prev) => [...prev, ...newFiles]);
 	}, []);
 
 	const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -21,21 +27,21 @@ export default function ConvertDocument() {
 		accept: {
 			"application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
 		},
-		multiple: false,
+		multiple: true,
 	});
 
-	async function handleConvert() {
-		if (!selectedFile) {
-			setError("Please select a document first");
-			return;
-		}
+	const handleRemoveFile = (index: number) => {
+		setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+	};
 
+	async function convertFile(fileStatus: FileStatus, index: number) {
 		try {
-			setLoading(true);
-			setError(null);
+			setSelectedFiles((prev) =>
+				prev.map((item, i) => (i === index ? { ...item, status: "converting" } : item))
+			);
 
 			const formData = new FormData();
-			formData.append("document", selectedFile);
+			formData.append("document", fileStatus.file);
 
 			const result = await processDocument(formData);
 
@@ -44,7 +50,7 @@ export default function ConvertDocument() {
 			});
 
 			// Create output filename
-			const originalName = selectedFile.name;
+			const originalName = fileStatus.file.name;
 			const nameWithoutExt = originalName.replace(".docx", "");
 			const outputFileName = `${nameWithoutExt}-converted.docx`;
 
@@ -55,64 +61,41 @@ export default function ConvertDocument() {
 			a.click();
 			window.URL.revokeObjectURL(url);
 
-			// Show success message
-			const successMessage = document.getElementById("success-message");
-			if (successMessage) {
-				successMessage.style.opacity = "1";
-				setTimeout(() => {
-					successMessage.style.opacity = "0";
-				}, 3000);
-			}
+			setSelectedFiles((prev) =>
+				prev.map((item, i) => (i === index ? { ...item, status: "completed" } : item))
+			);
 		} catch (error) {
-			console.error("Error:", error);
-			if (error instanceof Error && error.message.includes("Invalid Server Actions request")) {
-				setError(
-					"Server configuration error. Please try accessing the app directly without using a tunnel."
-				);
-			} else {
-				setError("An error occurred while processing the document");
-			}
-		} finally {
-			setLoading(false);
+			setSelectedFiles((prev) =>
+				prev.map((item, i) =>
+					i === index ? { ...item, status: "error", error: "Conversion failed" } : item
+				)
+			);
 		}
 	}
 
-	const handleRemoveFile = () => {
-		setSelectedFile(null);
-		setError(null);
-	};
+	async function handleConvertAll() {
+		if (isConverting) return;
+
+		setIsConverting(true);
+
+		// Convert files sequentially
+		for (let i = 0; i < selectedFiles.length; i++) {
+			if (selectedFiles[i].status === "pending" || selectedFiles[i].status === "error") {
+				await convertFile(selectedFiles[i], i);
+			}
+		}
+
+		setIsConverting(false);
+	}
 
 	return (
-		<div className="max-w-2xl mx-auto">
-			{/* Header Section */}
+		<div className="max-w-3xl mx-auto">
 			<div className="text-center mb-12">
 				<h1 className="text-4xl font-bold text-gray-800 mb-4">DOCX Unicode Converter</h1>
-				<p className="text-gray-600">Convert your document text while preserving all formatting</p>
+				<p className="text-gray-600">Convert multiple documents while preserving all formatting</p>
 			</div>
 
-			{/* Main Content */}
 			<div className="bg-white rounded-2xl shadow-xl p-8">
-				{error && (
-					<div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg flex items-center">
-						<svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-							<path
-								fillRule="evenodd"
-								d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-								clipRule="evenodd"
-							/>
-						</svg>
-						{error}
-					</div>
-				)}
-
-				{/* Success Message */}
-				<div
-					id="success-message"
-					className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg opacity-0 transition-opacity duration-300"
-				>
-					Document converted successfully!
-				</div>
-
 				{/* Dropzone */}
 				<div
 					{...getRootProps()}
@@ -145,78 +128,122 @@ export default function ConvertDocument() {
 						</div>
 						<div>
 							<p className="text-lg text-gray-700">
-								{isDragActive ? "Drop your DOCX file here..." : "Drag & drop your DOCX file here"}
+								{isDragActive ? "Drop your DOCX files here..." : "Drag & drop your DOCX files here"}
 							</p>
-							<p className="text-sm text-gray-500 mt-2">or click to select a file</p>
+							<p className="text-sm text-gray-500 mt-2">or click to select files</p>
 						</div>
 					</div>
 				</div>
 
-				{/* Selected File Display */}
-				{selectedFile && (
-					<div className="mt-4 p-4 bg-blue-50 rounded-lg flex items-center justify-between">
-						<div className="flex items-center">
-							<svg
-								className="w-5 h-5 text-blue-500 mr-2"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
+				{/* File List */}
+				{selectedFiles.length > 0 && (
+					<div className="mt-6 space-y-3">
+						{selectedFiles.map((fileStatus, index) => (
+							<div
+								key={`${fileStatus.file.name}-${index}`}
+								className="p-4 bg-blue-200 rounded-lg flex items-center justify-between"
 							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth={2}
-									d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-								/>
-							</svg>
-							<span className="text-sm text-blue-600 font-medium">{selectedFile.name}</span>
-						</div>
-						<button
-							onClick={(e) => {
-								e.stopPropagation();
-								handleRemoveFile();
-							}}
-							className="text-gray-500 hover:text-red-500 transition-colors"
-						>
-							<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth={2}
-									d="M6 18L18 6M6 6l12 12"
-								/>
-							</svg>
-						</button>
+								<div className="flex s-center flex-1 mr-4">
+									<svg
+										className="w-5 h-5 text-gray-500 mr-2"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={2}
+											d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+										/>
+									</svg>
+									<span className="text-sm font-medium text-gray-700 truncate">
+										{fileStatus.file.name}
+									</span>
+								</div>
+
+								{/* Status Indicator */}
+								<div className="flex items-center">
+									{fileStatus.status === "converting" && (
+										<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2" />
+									)}
+									{fileStatus.status === "completed" && (
+										<svg
+											className="w-5 h-5 text-green-500 mr-2"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+										>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												strokeWidth={2}
+												d="M5 13l4 4L19 7"
+											/>
+										</svg>
+									)}
+									{fileStatus.status === "error" && (
+										<svg
+											className="w-5 h-5 text-red-500 mr-2"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+										>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												strokeWidth={2}
+												d="M6 18L18 6M6 6l12 12"
+											/>
+										</svg>
+									)}
+
+									{/* Remove Button */}
+									<button
+										onClick={() => handleRemoveFile(index)}
+										className="text-gray-500 hover:text-red-500 transition-colors"
+									>
+										<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												strokeWidth={2}
+												d="M6 18L18 6M6 6l12 12"
+											/>
+										</svg>
+									</button>
+								</div>
+							</div>
+						))}
 					</div>
 				)}
 
-				{/* Convert Button */}
+				{/* Convert All Button */}
 				<button
-					onClick={handleConvert}
-					disabled={loading || !selectedFile}
+					onClick={handleConvertAll}
+					disabled={isConverting || selectedFiles.length === 0}
 					className={`
                         mt-6 w-full py-3 px-4 rounded-lg font-medium transition-all duration-200
                         ${
-													loading || !selectedFile
+													isConverting || selectedFiles.length === 0
 														? "bg-gray-300 cursor-not-allowed text-gray-500"
 														: "bg-blue-500 hover:bg-blue-600 text-white"
 												}
                     `}
 				>
-					{loading ? (
+					{isConverting ? (
 						<div className="flex items-center justify-center">
 							<div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-							Converting...
+							Converting Files...
 						</div>
 					) : (
-						"Convert Document"
+						`Convert ${selectedFiles.length} File${selectedFiles.length !== 1 ? "s" : ""}`
 					)}
 				</button>
 			</div>
 
-			{/* Footer */}
 			<div className="mt-8 text-center text-sm text-gray-500">
-				<p>Supports .docx files • Preserves all formatting</p>
+				<p>Supports multiple .docx files • Preserves all formatting</p>
 			</div>
 		</div>
 	);
