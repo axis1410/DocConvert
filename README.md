@@ -20,13 +20,13 @@ This Python script converts regular text in a Word document to similar-looking U
 1. Install Python from [python.org](https://www.python.org/downloads/)
 
    - Make sure to check "Add Python to PATH" during installation
-2. Install pandoc from 
+
+2. Install pandoc from [here](https://github.com/jgm/pandoc/releases/tag/3.6.3)
 3. Install required packages:
 
 ```bash
-pipinstallpython-docxpypandoc
+pip install python-docx pypandoc
 ```
-
 
 ## Usage
 
