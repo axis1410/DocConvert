@@ -22,7 +22,6 @@ export async function processDocument(formData: FormData) {
 		const buffer = Buffer.from(await file.arrayBuffer());
 		const zip = new AdmZip(buffer);
 
-		// Get document.xml content
 		const documentXml = zip.getEntry("word/document.xml");
 		if (!documentXml) {
 			throw new Error("Invalid DOCX file");
@@ -38,24 +37,58 @@ export async function processDocument(formData: FormData) {
 			});
 		});
 
-		// Process text while preserving structure
 		const processTextNodes = (obj: any): any => {
 			if (!obj) return obj;
 
-			// If it's a text node
-			if (obj._ !== undefined) {
-				return {
-					...obj,
-					_: replaceWithUnicodeLookalikes(obj._),
-				};
+			// Process text (w:t)
+			if (obj["w:t"]) {
+				const textContent = obj["w:t"];
+
+				// Handle array of strings
+				if (Array.isArray(textContent)) {
+					return {
+						...obj,
+						"w:t": textContent.map((item) => {
+							if (typeof item === "string") {
+								return replaceWithUnicodeLookalikes(item);
+							}
+							if (item && typeof item === "object" && item._) {
+								return {
+									...item,
+									_: replaceWithUnicodeLookalikes(item._),
+								};
+							}
+							return item;
+						}),
+					};
+				}
+
+				// Handle object with _ property
+				if (textContent && typeof textContent === "object" && textContent._) {
+					return {
+						...obj,
+						"w:t": {
+							...textContent,
+							_: replaceWithUnicodeLookalikes(textContent._),
+						},
+					};
+				}
+
+				// Handle direct string
+				if (typeof textContent === "string") {
+					return {
+						...obj,
+						"w:t": replaceWithUnicodeLookalikes(textContent),
+					};
+				}
 			}
 
-			// If it's an array
+			// Handle arrays
 			if (Array.isArray(obj)) {
 				return obj.map((item) => processTextNodes(item));
 			}
 
-			// If it's an object
+			// Handle objects
 			if (typeof obj === "object") {
 				const newObj: any = {};
 				for (const [key, value] of Object.entries(obj)) {
@@ -64,17 +97,13 @@ export async function processDocument(formData: FormData) {
 				return newObj;
 			}
 
-			// If it's a string (text content)
-			if (typeof obj === "string") {
-				return replaceWithUnicodeLookalikes(obj);
-			}
-
 			return obj;
 		};
 
-		// Process the document content
-		if (result.document?.body) {
-			result.document.body = processTextNodes(result.document.body);
+		// Start processing from the document body - corrected path
+		if (result["w:document"]?.["w:body"]) {
+			console.log("Found document body");
+			result["w:document"]["w:body"] = processTextNodes(result["w:document"]["w:body"]);
 		}
 
 		// Convert back to XML
@@ -85,10 +114,9 @@ export async function processDocument(formData: FormData) {
 		const newZip = new AdmZip(buffer);
 		newZip.updateFile("word/document.xml", Buffer.from(newXml));
 
-		// Get the modified document as buffer
 		return newZip.toBuffer();
 	} catch (error) {
 		console.error("Error processing document:", error);
-		throw new Error(error instanceof Error ? error.message : "Unknown error occurred");
+		throw error;
 	}
 }

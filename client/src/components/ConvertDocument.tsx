@@ -27,7 +27,8 @@ export default function ConvertDocument() {
 		accept: {
 			"application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
 		},
-		multiple: true,
+		multiple: false,
+		maxFiles: 1,
 	});
 
 	const handleRemoveFile = (index: number) => {
@@ -74,18 +75,17 @@ export default function ConvertDocument() {
 	}
 
 	async function handleConvertAll() {
-		if (isConverting) return;
-
+		if (isConverting || selectedFiles.length === 0) return;
 		setIsConverting(true);
 
-		// Convert files sequentially
-		for (let i = 0; i < selectedFiles.length; i++) {
-			if (selectedFiles[i].status === "pending" || selectedFiles[i].status === "error") {
-				await convertFile(selectedFiles[i], i);
-			}
+		try {
+			const fileStatus = selectedFiles[0];
+			await convertFile(fileStatus, 0);
+		} catch (error) {
+			console.error("Conversion failed:", error);
+		} finally {
+			setIsConverting(false);
 		}
-
-		setIsConverting(false);
 	}
 
 	return (
